@@ -12,6 +12,7 @@
 * [Configuration reference](#configuration-reference)
 * [Building the SDK](#building-the-sdk)
 * [Contributing](#contributing)
+* [SCTP Integration](#sctp-integration)
 
 This repository contains the Okta management SDK for .NET. This SDK can be used in your server-side code to interact with the Okta management API and:
  
@@ -194,7 +195,7 @@ var oauthAppsApi = new ApplicationApi(configuration);
 
 It is possible to use an access token you retrieved outside of the SDK for authentication. For that, set `Configuration.AuthorizationMode` configuration property to `AuthorizationMode.BearerToken` and `Configuration.AccessToken` to the token string.
 
-> JL NOTE: According to [https://developer.okta.com/docs/guides/client-secret-rotation-key/main/#rotate-a-client-secret](Generate JWK Key Pairs), **When you switch the client authentication method to Public key/Private key, any existing client secrets are deleted.**, however, the middleware (OWIN) in ASP.NET Web Form requires ClientId / ClientSecret to authenticate Okta users. 
+> JL NOTE: According to [Generate JWK Key Pairs](https://developer.okta.com/docs/guides/client-secret-rotation-key/main/#rotate-a-client-secret), **When you switch the client authentication method to Public key/Private key, any existing client secrets are deleted.**, however, the middleware (OWIN) in ASP.NET Web Form requires ClientId / ClientSecret to authenticate Okta users. 
 
 1. Solution 1 - Create 2 Okta apps, one for authentication, another one for backend Okta SDK
 2. Solution 2 (current) - Create 1 Okta app for authentication, issue Token for backend Okta SDK
@@ -553,7 +554,7 @@ We're happy to accept contributions and PRs! Please see the [contribution guide]
 [Rate Limiting at Okta]: https://developer.okta.com/docs/api/getting_started/rate-limits
 
 
-# SCTP Integration
+## SCTP Integration
 In order to integrate SCTP (ASP.NET Web Form - .NET Framework 4.8) with Okta, it needs 2 features:
 
 1. Upgrade the classic ASP.NET Forms Authentication to Okta's OAuth 2.0
@@ -564,7 +565,7 @@ In order to integrate SCTP (ASP.NET Web Form - .NET Framework 4.8) with Okta, it
 
     In SCTP, build extra Okta user controller utilizing Okta's SDK to sync users to Okta.
 
-## Dependency Conflictions
+### Dependency Conflictions
 Both Okta SDK and OWIN middle have common dependencies, but different versions
 1. IdentityModel
     
@@ -576,8 +577,8 @@ Both Okta SDK and OWIN middle have common dependencies, but different versions
     - Okta requires 13.0.1
     - OWIN requires 10.0.3
 
-### Solution 1 - Upgrade OWIN dependencies
-OWIN [https://github.com/aspnet/AspNetKatana](AspNetKatana) can be upgraded to align with Okta SDK, however, it requires private key to sign the assembly. It's not feasible.
+#### Solution 1 - Upgrade OWIN dependencies
+OWIN [AspNetKatana](https://github.com/aspnet/AspNetKatana) can be upgraded to align with Okta SDK, however, it requires private key to sign the assembly. It's not feasible.
 
-### Solution 2 (recommend) - Downgrade Okta dependencies
-[https://github.com/okta/okta-sdk-dotnet](Okta SDK) depends on [https://github.com/okta/okta-sdk-abstractions-dotnet](Okta SDK Abstractions) can both downgrade IdentityModel and Newtonsoft.Json to align with OWIN.
+#### Solution 2 (recommend) - Downgrade Okta dependencies
+[Okta SDK](https://github.com/okta/okta-sdk-dotnet) depends on [Okta SDK Abstractions](https://github.com/okta/okta-sdk-abstractions-dotnet) can both downgrade IdentityModel and Newtonsoft.Json to align with OWIN.
