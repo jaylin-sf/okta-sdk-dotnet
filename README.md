@@ -93,6 +93,7 @@ You'll also need:
 Construct a client instance by passing it your Okta domain name and API token:
 
 ```csharp
+// JL: this snippet of code is confusing, just ignore
 using System.Collections.Generic;
 using System.Diagnostics;
 using Okta.Sdk.Api;
@@ -193,16 +194,35 @@ var oauthAppsApi = new ApplicationApi(configuration);
 
 It is possible to use an access token you retrieved outside of the SDK for authentication. For that, set `Configuration.AuthorizationMode` configuration property to `AuthorizationMode.BearerToken` and `Configuration.AccessToken` to the token string.
 
+> JL NOTE: According to [https://developer.okta.com/docs/guides/client-secret-rotation-key/main/#rotate-a-client-secret](Generate JWK Key Pairs), **When you switch the client authentication method to Public key/Private key, any existing client secrets are deleted.**, however, the middleware (OWIN) in ASP.NET Web Form requires ClientId / ClientSecret to authenticate Okta users. 
+
+1. Solution 1 - Create 2 Okta apps, one for authentication, another one for backend Okta SDK
+2. Solution 2 (current) - Create 1 Okta app for authentication, issue Token for backend Okta SDK
+
 ## Usage guide
 
 These examples will help you understand how to use this library. You can also browse the full [API reference documentation][dotnetdocs].
 
 Once you initialize an API client, you can call methods to make requests to the Okta API.
 
+### Initialize API Client
+``` csharp
+// Added by JL - use Solution 2
+// Other APIs e.g. GroupApi accept the same configuration in their constructor
+var config = new Okta.Sdk.Client.Configuration()
+{
+    OktaDomain = "https://your-subdomain.okta.com",
+    AuthorizationMode = AuthorizationMode.SSWS,
+    Scopes = new HashSet<string> { "okta.users.read", "okta.users.write" }, // Add all the scopes you need
+    Token = "YOUR_API_KEY"
+};
+var _userApi = new UserApi(config);
+```
+
 ### Get a User
 ``` csharp
 // Get the user with a user ID or login
-var user = await userApi.GetUserAsync("<Some user ID or login>");
+var user = await _userApi.GetUserAsync("<Some user ID or login>");
 ```
 
 The string argument for `GetUserAsync` can be the user's ID or the user's login (usually their email).
@@ -213,13 +233,13 @@ The SDK will automatically [paginate](https://developer.okta.com/docs/api/gettin
 
 ``` csharp
 // These different styles all perform the same action:
-var allUsers = await userApi.ListUsers().ToListAsync();
-var allUsers = await userApi.ListUsers().ToArrayAsync();
+var allUsers = await _userApi.ListUsers().ToListAsync();
+var allUsers = await _userApi.ListUsers().ToArrayAsync();
 ```
 
 ### Filter or search for Users
 ``` csharp
-var foundUsers = await userApi
+var foundUsers = await _userApi
                         .ListUsers(search: $"profile.nickName eq \"Skywalker\"")
                         .ToArrayAsync();
 ```
@@ -531,3 +551,33 @@ We're happy to accept contributions and PRs! Please see the [contribution guide]
 [github-issues]: https://github.com/okta/okta-sdk-dotnet/issues
 [github-releases]: https://github.com/okta/okta-sdk-dotnet/releases
 [Rate Limiting at Okta]: https://developer.okta.com/docs/api/getting_started/rate-limits
+
+
+# SCTP Integration
+In order to integrate SCTP (ASP.NET Web Form - .NET Framework 4.8) with Okta, it needs 2 features:
+
+1. Upgrade the classic ASP.NET Forms Authentication to Okta's OAuth 2.0
+
+    Introduce OWIN middleware to handle the token exchange and validation with Okta well-known endpoints.
+
+2. User transition from SCTP Portals (Broker, Underwriter and ControlPanel) to Okta
+
+    In SCTP, build extra Okta user controller utilizing Okta's SDK to sync users to Okta.
+
+## Dependency Conflictions
+Both Okta SDK and OWIN middle have common dependencies, but different versions
+1. IdentityModel
+    
+    - Okta requires 6.22.0
+    - OWIN requires 5.3.0
+
+2. Newtonsoft.Json
+
+    - Okta requires 13.0.1
+    - OWIN requires 10.0.3
+
+### Solution 1 - Upgrade OWIN dependencies
+OWIN [https://github.com/aspnet/AspNetKatana](AspNetKatana) can be upgraded to align with Okta SDK, however, it requires private key to sign the assembly. It's not feasible.
+
+### Solution 2 (recommend) - Downgrade Okta dependencies
+[https://github.com/okta/okta-sdk-dotnet](Okta SDK) depends on [https://github.com/okta/okta-sdk-abstractions-dotnet](Okta SDK Abstractions) can both downgrade IdentityModel and Newtonsoft.Json to align with OWIN.
